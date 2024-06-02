@@ -1,0 +1,243 @@
+9. Asset Tracking System with Ownership Details - Spring Boot Project
+AIM:
+ALGORITHM:
+CODING:
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;import
+org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
+import javax.persistence.*;
+import java.util.Optional;
+@SpringBootApplication
+public class AssetTrackingApplication {
+public static void main(String[] args) {
+SpringApplication.run(AssetTrackingApplication.class, args);
+}
+}
+Model
+@Entity
+class Asset {
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String name;
+private String description;
+private double value;
+@OneToOne(mappedBy = "asset", cascade = CascadeType.ALL)
+private Owner owner;
+public Asset() {}
+public Asset(String name, String description, double value) {
+this.name = name;
+this.description = description;
+this.value = value;
+}
+// Getters and setters
+public int getId() {
+return id;
+}
+public void setId(int id) {
+this.id = id;
+}
+public String getName() {return
+name;
+}
+public void setName(String name) {
+this.name = name;
+}
+public String getDescription() {
+return description;
+}
+public void setDescription(String description) {
+this.description = description;
+}
+public double getValue() {
+return value;
+}
+public void setValue(double value) {
+this.value = value;
+}
+public Owner getOwner() {
+return owner;
+}
+public void setOwner(Owner owner) {
+this.owner = owner;
+}
+}
+@Entity
+class Owner {@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String name;
+private String email;
+private String address;
+@OneToOne
+@JoinColumn(name = "asset_id")
+private Asset asset;
+public Owner() {}
+public Owner(String name, String email, String address) {
+this.name = name;
+this.email = email;
+this.address = address;
+}
+// Getters and setters
+public int getId() {
+return id;
+}
+public void setId(int id) {
+this.id = id;
+}
+public String getName() {return
+name;
+}
+public void setName(String name) {
+this.name = name;
+}
+public String getEmail() {return
+email;
+}
+public void setEmail(String email) {
+this.email = email;
+}
+public String getAddress() {
+return address;
+}
+public void setAddress(String address) {
+this.address = address;
+}
+public Asset getAsset() {
+return asset;
+}
+public void setAsset(Asset asset) {
+this.asset = asset;
+}
+}
+Repository:
+@Repository
+interface AssetRepository extends JpaRepository<Asset, Integer> {}
+@Repository
+interface OwnerRepository extends JpaRepository<Owner, Integer> {}
+Controllers:
+@RestController
+@RequestMapping("/assets")class
+AssetController {
+private final AssetService assetService;
+public AssetController(AssetService assetService) {
+this.assetService = assetService;
+}
+@PostMapping
+public Asset createAsset(@RequestBody Asset asset) {
+return assetService.saveAsset(asset);
+}
+@GetMapping("/{id}")
+public Asset getAssetById(@PathVariable int id) {
+return assetService.getAssetById(id);
+}
+@PutMapping("/{id}")
+public Asset updateAsset(@PathVariable int id, @RequestBody Asset
+updatedAsset) {
+return assetService.updateAsset(id, updatedAsset);
+}
+@DeleteMapping("/{id}")
+public String deleteAsset(@PathVariable int id) {
+return assetService.deleteAsset(id);
+}
+}
+@RestController
+@RequestMapping("/owners")
+class OwnerController {
+private final OwnerService ownerService;
+public OwnerController(OwnerService ownerService) {
+this.ownerService = ownerService;
+}
+@PostMapping("/asset/{assetId}")
+public Owner createOwner(@PathVariable int assetId, @RequestBodyOwner
+owner) {
+return ownerService.saveOwner(assetId, owner);
+}
+@GetMapping("/{id}")
+public Owner getOwnerById(@PathVariable int id) {return
+ownerService.getOwnerById(id);
+}
+@PutMapping("/{id}")
+public Owner updateOwner(@PathVariable int id, @RequestBody Owner
+updatedOwner) {
+return ownerService.updateOwner(id, updatedOwner);
+}
+@DeleteMapping("/{id}")
+public String deleteOwner(@PathVariable int id) {
+return ownerService.deleteOwner(id);
+}
+}
+Service:
+@Service
+class AssetService {
+private final AssetRepository assetRepository;
+public AssetService(AssetRepository assetRepository) {this.assetRepository
+= assetRepository;
+}
+public Asset saveAsset(Asset asset) {
+return assetRepository.save(asset);
+}
+public Asset getAssetById(int id) {
+return assetRepository.findById(id).orElse(null);
+}
+public Asset updateAsset(int id, Asset updatedAsset) {
+Asset existingAsset = assetRepository.findById(id).orElse(null);if
+(existingAsset != null) {
+existingAsset.setName(updatedAsset.getName());
+existingAsset.setDescription(updatedAsset.getDescription());
+existingAsset.setValue(updatedAsset.getValue());
+return assetRepository.save(existingAsset);
+}
+return null;
+public String deleteAsset(int id) {
+Asset existingAsset = assetRepository.findById(id).orElse(null);if
+(existingAsset != null) {
+assetRepository.delete(existingAsset);
+return "Asset deleted successfully";
+} else {
+return "Asset not found with ID: " + id;
+}
+}
+}
+@Service
+class OwnerService {
+private final OwnerRepository ownerRepository;
+private final AssetRepository assetRepository;
+public OwnerService(OwnerRepository ownerRepository, AssetRepository
+assetRepository) {
+this.ownerRepository = ownerRepository;
+this.assetRepository = assetRepository;
+}
+public Owner saveOwner(int assetId, Owner owner) {
+Asset asset = assetRepository.findById(assetId).orElse(null);if
+(asset != null) {
+owner.setAsset(asset);
+return ownerRepository.save(owner);
+}
+return null;
+}
+public Owner getOwnerById(int id) {
+return ownerRepository.findById(id).orElse(null);
+}
+public Owner updateOwner(int id, Owner updatedOwner) {
+Owner existingOwner = ownerRepository.findById(id).orElse(null);if
+(existingOwner != null) {
+existingOwner.setName(updatedOwner.getName());
+existingOwner.setEmail(updatedOwner.getEmail());
+existingOwner.setAddress(updatedOwner.getAddress());
+return ownerRepository.save(existingOwner);
+}
+return null;
+}
+public String deleteOwner(int id) {
+Owner existingOwner = ownerRepository.findById(id).orElse(null);if
+(existingOwner != null) {
+ownerRepository.delete(existingOwner);return
+"Owner deleted successfully";
+} else {
+return "Owner not found with ID: " + id;
+}
+}

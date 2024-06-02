@@ -1,0 +1,251 @@
+10. Personal Finance Management System - Implementing AOP with Spring
+Boot and AspectJ
+AIM:
+ALGORITHM:
+CODING:
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;import
+org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
+import javax.persistence.*;
+import java.util.List;
+@SpringBootApplication
+public class PersonalFinanceApplication {
+public static void main(String[] args) {
+SpringApplication.run(PersonalFinanceApplication.class, args);
+}
+}
+Models
+@Entity
+class User {
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String username;
+private String email;
+@OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+private List<Transaction> transactions;
+public User() {}
+public User(String username, String email) {
+this.username = username;
+this.email = email;
+}
+// Getters and setters
+public int getId() {
+return id;}
+public void setId(int id) {
+this.id = id;
+}
+public String getUsername() {
+return username;
+}
+public void setUsername(String username) {
+this.username = username;
+}
+public String getEmail() {return
+email;
+}
+public void setEmail(String email) {
+this.email = email;
+}
+public List<Transaction> getTransactions() {return
+transactions;
+}
+public void setTransactions(List<Transaction> transactions) {
+this.transactions = transactions;
+}
+}
+@Entity
+class Transaction {@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String type; private
+double amount; private
+String description;
+@ManyToOne @JoinColumn(name
+= "user_id")private User user;
+public Transaction() {}
+public Transaction(String type, double amount, String description) {this.type
+= type;
+this.amount = amount;
+this.description = description;
+}
+// Getters and setters
+public int getId() {
+return id;
+}
+public void setId(int id) {
+this.id = id;
+}
+public String getType() {
+return type;
+}
+public void setType(String type) {
+this.type = type;
+}
+public double getAmount() {
+return amount;
+}
+public void setAmount(double amount) {
+this.amount = amount;
+}
+public String getDescription() {
+return description;
+}
+public void setDescription(String description) {
+this.description = description;
+}
+public User getUser() {
+return user;
+}
+public void setUser(User user) {
+this.user = user;
+}
+}
+Repository
+@Repository
+interface UserRepository extends JpaRepository<User, Integer> {}
+@Repository
+interface TransactionRepository extends JpaRepository<Transaction, Integer>
+{}
+@RestController
+@RequestMapping("/users")
+class UserController {
+private final UserService userService;
+public UserController(UserService userService) {
+this.userService = userService;
+}
+@PostMapping
+public User createUser(@RequestBody User user) {
+return userService.saveUser(user);
+}
+@GetMapping("/{id}")
+public User getUserById(@PathVariable int id) {
+return userService.getUserById(id);
+}
+@PutMapping("/{id}")
+public User updateUser(@PathVariable int id, @RequestBody User
+updatedUser) {
+return userService.updateUser(id, updatedUser);
+}
+@DeleteMapping("/{id}")
+public String deleteUser(@PathVariable int id) {return
+userService.deleteUser(id);
+}
+}
+Controller:
+@RestController
+@RequestMapping("/transactions") class
+TransactionController {
+private final TransactionService transactionService;
+public TransactionController(TransactionService transactionService) {
+this.transactionService = transactionService;
+}
+@PostMapping("/user/{userId}")
+public Transaction createTransaction(@PathVariable int userId,
+@RequestBody Transaction transaction) {
+return transactionService.saveTransaction(userId, transaction);
+}
+@GetMapping("/{id}")
+public Transaction getTransactionById(@PathVariable int id) {return
+transactionService.getTransactionById(id);
+}
+@GetMapping("/user/{userId}")
+public List<Transaction> getTransactionsByUserId(@PathVariable intuserId)
+{
+return transactionService.getTransactionsByUserId(userId);
+}
+@PutMapping("/{id}")
+public Transaction updateTransaction(@PathVariable int id, @RequestBody
+Transaction updatedTransaction) {
+return transactionService.updateTransaction(id, updatedTransaction);
+}
+@DeleteMapping("/{id}")
+public String deleteTransaction(@PathVariable int id) {
+return transactionService.deleteTransaction(id);
+}
+}
+Service:
+@Service
+class UserService {
+private final UserRepository userRepository;
+public UserService(UserRepository userRepository) {
+this.userRepository = userRepository;
+}
+public User saveUser(User user) {
+return userRepository.save(user);
+}
+public User getUserById(int id) {
+return userRepository.findById(id).orElse(null);
+}
+public User updateUser(int id, User updatedUser) {
+User existingUser = userRepository.findById(id).orElse(null);if
+(existingUser != null) {
+existingUser.setUsername(updatedUser.getUsername());
+existingUser.setEmail(updatedUser.getEmail());
+return userRepository.save(existingUser);
+}
+return null;
+}
+public String deleteUser(int id) {
+User existingUser = userRepository.findById(id).orElse(null);if
+(existingUser != null) {
+userRepository.delete(existingUser);
+return "User deleted successfully";
+} else {
+return "User not found with ID: " + id;
+}
+}
+}
+@Service
+class TransactionService {
+private final UserRepository userRepository;
+private final TransactionRepository transactionRepository;
+public TransactionService(UserRepository userRepository,
+TransactionRepository transactionRepository) {
+this.userRepository = userRepository;
+this.transactionRepository = transactionRepository;
+}
+public Transaction saveTransaction(int userId, Transaction transaction) {User
+user = userRepository.findById(userId).orElse(null);
+if (user != null) {
+transaction.setUser(user);
+return transactionRepository.save(transaction);
+}
+return null;
+}
+public Transaction getTransactionById(int id) {
+return transactionRepository.findById(id).orElse(null);
+}
+public List<Transaction> getTransactionsByUserId(int userId) {User
+user = userRepository.findById(userId).orElse(null);
+if (user != null) {
+return user.getTransactions();
+}
+return null;
+}
+public Transaction updateTransaction(int id, TransactionupdatedTransaction)
+{
+Transaction existingTransaction =
+transactionRepository.findById(id).orElse(null);
+if (existingTransaction != null) {
+existingTransaction.setType(updatedTransaction.getType());
+existingTransaction.setAmount(updatedTransaction.getAmount());
+existingTransaction.setDescription(updatedTransaction.getDescription()); return
+transactionRepository.save(existingTransaction);
+}
+return null;
+}
+public String deleteTransaction(int id) {
+Transaction existingTransaction =
+transactionRepository.findById(id).orElse(null);
+if (existingTransaction != null) {
+transactionRepository.delete(existingTransaction);
+return "Transaction deleted successfully";
+} else {
+return "Transaction not found with ID: " + id;
+}
+}
+}

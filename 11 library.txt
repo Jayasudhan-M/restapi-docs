@@ -1,0 +1,242 @@
+11. Library Membership Management API - Spring Boot Application
+Configuration
+AIM:
+ALGORITHM:
+CODING:
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;import
+org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
+import javax.persistence.*;
+import java.time.LocalDate;import
+java.util.List;
+@SpringBootApplication
+public class LibraryMembershipApplication {
+public static void main(String[] args) {
+SpringApplication.run(LibraryMembershipApplication.class, args);
+}
+}
+Model
+@Entity
+class Member {
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String name;
+private String email;
+@OneToOne(mappedBy = "member", cascade = CascadeType.ALL)private
+MembershipCard membershipCard;
+public Member() {}
+public Member(String name, String email) {
+this.name = name;
+this.email = email;
+}
+// Getters and setters
+public int getId() {
+return id;}
+public void setId(int id) {
+this.id = id;
+}
+public String getName() {return
+name;
+}
+public void setName(String name) {
+this.name = name;
+}
+public String getEmail() {return
+email;
+}
+public void setEmail(String email) {
+this.email = email;
+}
+public MembershipCard getMembershipCard() {return
+membershipCard;
+}
+public void setMembershipCard(MembershipCard membershipCard) {
+this.membershipCard = membershipCard;
+}
+}
+@Entity
+class MembershipCard {@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String cardNumber; private
+LocalDate expirationDate;
+@OneToOne
+@JoinColumn(name = "member_id")
+private Member member;
+public MembershipCard() {}
+public MembershipCard(String cardNumber, LocalDate expirationDate) {
+this.cardNumber = cardNumber;
+this.expirationDate = expirationDate;
+}
+// Getters and setters
+public int getId() {
+return id;
+}
+public void setId(int id) {
+this.id = id;
+}
+public String getCardNumber() {
+return cardNumber;
+}
+public void setCardNumber(String cardNumber) {
+this.cardNumber = cardNumber;
+}
+public LocalDate getExpirationDate() {
+return expirationDate;
+}
+public void setExpirationDate(LocalDate expirationDate) {
+this.expirationDate = expirationDate;
+}
+public Member getMember() {
+return member;
+}
+public void setMember(Member member) {
+this.member = member;
+}
+}
+Repository:
+@Repository
+interface MemberRepo extends JpaRepository<Member, Integer> {}
+@Repository
+interface MembershipRepo extends JpaRepository<MembershipCard, Integer>
+{}
+@RestController
+@RequestMapping("/members")
+class MemberController {
+private final MemberService memberService;
+public MemberController(MemberService memberService) {
+this.memberService = memberService;
+}
+@PostMapping
+public Member createMember(@RequestBody Member member) {return
+memberService.saveMember(member);
+}
+@GetMapping("/{id}")
+public Member getMemberById(@PathVariable int id) {return
+memberService.getMemberById(id);
+}
+@GetMapping
+public List<Member> getAllMembers() {
+return memberService.getAllMembers();
+}
+@PutMapping("/{id}")
+public Member updateMember(@PathVariable int id, @RequestBody
+Member updatedMember) {
+return memberService.updateMember(id, updatedMember);
+}
+@DeleteMapping("/{id}")
+public String deleteMember(@PathVariable int id) {
+return memberService.deleteMember(id);
+}
+}
+Controller:
+@RestController
+@RequestMapping("/membership-cards")
+class MembershipCardController {
+private final MembershipService membershipService;
+public MembershipCardController(MembershipService membershipService)
+{
+this.membershipService = membershipService;
+}
+@PostMapping("/member/{id}")
+public MembershipCard createMembershipCard(@PathVariable int id,
+@RequestBody MembershipCard membershipCard) {
+return membershipService.saveMembershipCard(id, membershipCard);
+}
+@GetMapping("/{id}")
+public MembershipCard getMembershipCardById(@PathVariable int id) {return
+membershipService.getMembershipCardById(id);
+}
+@PutMapping("/{id}")
+public MembershipCard updateMembershipCard(@PathVariable int id,
+@RequestBody MembershipCard updatedMembershipCard) {
+return membershipService.updateMembershipCard(id,
+updatedMembershipCard);
+}
+@DeleteMapping("/{id}")
+public String deleteMembershipCard(@PathVariable int id) {
+return membershipService.deleteMembershipCard(id);
+}
+}
+Service:
+@Service
+class MemberService {
+private final MemberRepo memberRepo;
+public MemberService(MemberRepo memberRepo) {
+this.memberRepo = memberRepo;
+}
+public Member saveMember(Member member) {
+return memberRepo.save(member);
+}
+public Member getMemberById(int id) {
+return memberRepo.findById(id).orElse(null);
+}
+public List<Member> getAllMembers() {
+return memberRepo.findAll();
+}
+public Member updateMember(int id, Member updatedMember) { Member
+existingMember = memberRepo.findById(id).orElse(null);if
+(existingMember != null) {
+existingMember.setName(updatedMember.getName());
+existingMember.setEmail(updatedMember.getEmail());
+return memberRepo.save(existingMember);
+}
+return null;
+}
+public String deleteMember(int id) {
+Member existingMember = memberRepo.findById(id).orElse(null);if
+(existingMember != null) {
+memberRepo.delete(existingMember); return
+"The Member Deleted Successfully";
+} else {
+return "Member Not Found";
+}
+}
+}
+@Service
+class MembershipService {
+private final MemberRepo memberRepo;
+private final MembershipRepo membershipRepo;
+public MembershipService(MemberRepo memberRepo, MembershipRepo
+membershipRepo) {
+this.memberRepo = memberRepo;
+this.membershipRepo = membershipRepo;
+}
+public MembershipCard saveMembershipCard(int memberId,
+MembershipCard membershipCard) {
+Member member = memberRepo.findById(memberId).orElse(null);if
+(member != null) {
+membershipCard.setMember(member);
+return membershipRepo.save(membershipCard);}
+return null;}
+public MembershipCard getMembershipCardById(int id) {return
+membershipRepo.findById(id).orElse(null);
+}
+public MembershipCard updateMembershipCard(int id, MembershipCard
+updatedMembershipCard) {
+MembershipCard existingMembershipCard =
+membershipRepo.findById(id).orElse(null);
+if (existingMembershipCard != null) {
+existingMembershipCard.setCardNumber(updatedMembershipCard.getCardN
+umber());
+existingMembershipCard.setExpirationDate(updatedMembershipCard.getExpir
+ationDate());
+return membershipRepo.save(existingMembershipCard);
+}
+return null;
+}
+public String deleteMembershipCard(int id) {
+MembershipCard existingMembershipCard =
+membershipRepo.findById(id).orElse(null);
+if (existingMembershipCard != null) {
+membershipRepo.delete(existingMembershipCard);
+return "Membership Card Deleted Successfully";
+} else {
+return "Not Found";
+}
+}
+}
